@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Puppeteer browser cache
+.cache/
+
+# Vite
+.vite/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local env files
+.env.*
+.env.local
+.env.*.local
+
+# Editor
+.vscode/
+.idea/

@@ -1,0 +1,9 @@
+@echo off
+echo Clearing Python cache...
+for /d /r "%~dp0app" %%d in (__pycache__) do @if exist "%%d" rd /s /q "%%d"
+
+echo Setting environment...
+set APP_ENV=rnd
+
+echo Starting uvicorn with debug logging...
+.venv\Scripts\uvicorn.exe app.main:app --reload --port 8000 --log-level debug

@@ -1,0 +1,14 @@
+fastapi>=0.115
+uvicorn[standard]>=0.32
+beanie>=1.27
+motor>=3.6
+certifi>=2024.0
+pydantic[email]>=2.9
+pydantic-settings>=2.6
+python-jose[cryptography]>=3.3
+bcrypt>=4.0
+python-multipart>=0.0.12
+openpyxl>=3.1
+python-dotenv>=1.0
+email-validator>=2.2
+apscheduler>=3.10
