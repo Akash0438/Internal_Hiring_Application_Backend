@@ -22,7 +22,6 @@ def _make_client() -> AsyncIOMotorClient:
         # Production: strict TLS with certifi CA bundle
         return AsyncIOMotorClient(
             settings.MONGODB_URL,
-            tls=True,
             tlsCAFile=certifi.where(),
         )
     # Local / RND / QA: tlsAllowInvalidCertificates implicitly enables TLS.
