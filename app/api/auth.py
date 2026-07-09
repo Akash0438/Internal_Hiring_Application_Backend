@@ -1,34 +1,17 @@
 from datetime import timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.config import settings
 from app.models.user import User
-from app.schemas.auth import ChangePasswordRequest, LoginRequest, UserResponse
+from app.schemas.auth import ChangePasswordRequest, LoginRequest, TokenUserResponse, UserResponse
 from app.services.auth_service import create_access_token, get_current_user
 from app.utils.password import hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-COOKIE_NAME = "access_token"
-COOKIE_MAX_AGE = settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60
 
-
-def _set_auth_cookie(response: Response, token: str) -> None:
-    is_prod = settings.ENVIRONMENT == "production"
-    response.set_cookie(
-        key=COOKIE_NAME,
-        value=token,
-        httponly=True,
-        max_age=COOKIE_MAX_AGE,
-        samesite="none" if is_prod else "lax",
-        secure=is_prod,
-        path="/",
-    )
-
-
-@router.post("/login")
-async def login(body: LoginRequest, response: Response):
+@router.post("/login", response_model=TokenUserResponse)
+async def login(body: LoginRequest):
     user = await User.find_one(User.email == body.email)
     if not user or not verify_password(body.password, user.password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
@@ -38,8 +21,8 @@ async def login(body: LoginRequest, response: Response):
     token = create_access_token(
         {"sub": str(user.id), "role": user.role, "must_change_password": user.must_change_password}
     )
-    _set_auth_cookie(response, token)
-    return UserResponse(
+    return TokenUserResponse(
+        access_token=token,
         id=str(user.id),
         name=user.name,
         email=user.email,
@@ -51,8 +34,8 @@ async def login(body: LoginRequest, response: Response):
 
 
 @router.post("/logout")
-async def logout(response: Response):
-    response.delete_cookie(key=COOKIE_NAME, path="/")
+async def logout():
+    # Token is stored client-side; client discards it on logout
     return {"message": "Logged out successfully"}
 
 
@@ -69,10 +52,9 @@ async def me(current_user: User = Depends(get_current_user)):
     )
 
 
-@router.post("/change-password")
+@router.post("/change-password", response_model=TokenUserResponse)
 async def change_password(
     body: ChangePasswordRequest,
-    response: Response,
     current_user: User = Depends(get_current_user),
 ):
     if len(body.new_password) < 8:
@@ -89,9 +71,17 @@ async def change_password(
     current_user.must_change_password = False
     await current_user.save()
 
-    # Re-issue token with updated must_change_password=False
+    # Re-issue token with must_change_password=False, return it in body
     token = create_access_token(
         {"sub": str(current_user.id), "role": current_user.role, "must_change_password": False}
     )
-    _set_auth_cookie(response, token)
-    return {"message": "Password changed successfully"}
+    return TokenUserResponse(
+        access_token=token,
+        id=str(current_user.id),
+        name=current_user.name,
+        email=current_user.email,
+        role=current_user.role,
+        must_change_password=False,
+        can_create_portfolio_managers=current_user.can_create_portfolio_managers,
+        is_active=current_user.is_active,
+    )

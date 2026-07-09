@@ -21,3 +21,8 @@ class UserResponse(BaseModel):
     must_change_password: bool
     can_create_portfolio_managers: bool
     is_active: bool
+
+
+class TokenUserResponse(UserResponse):
+    """UserResponse plus a Bearer token — returned by login and change-password."""
+    access_token: str
